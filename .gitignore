@@ -1,0 +1,13 @@
+# Build output is tracked as the released application; ignore temporary outputs.
+*.pdb
+*.user
+*.suo
+.vs/
+obj/
+bin/
+smoke/
+smoke*/
+TestResults/
+*.log
+.DS_Store
+Thumbs.db
