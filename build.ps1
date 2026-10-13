@@ -16,6 +16,8 @@ $compilerArgs = @(
     "/resource:$winforms,JDI.Microsoft.Web.WebView2.WinForms.dll",
     "/resource:$loader,JDI.WebView2Loader.dll",
     "/resource:$(Join-Path $assets 'index.html'),JDI.index.html",
+    "/resource:$(Join-Path $assets 'app.js'),JDI.app.js",
+    "/resource:$(Join-Path $assets 'smoke.js'),JDI.smoke.js",
     "/resource:$(Join-Path $assets 'design.css'),JDI.design.css",
     "/resource:$(Join-Path $assets 'refinements.css'),JDI.refinements.css",
     "/resource:$(Join-Path $assets 'ribbon.svg'),JDI.ribbon.svg",

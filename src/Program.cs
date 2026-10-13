@@ -30,7 +30,7 @@ internal static class Program {
             Directory.CreateDirectory(Root);
             Assets = Path.Combine(Root, "app-2.1.0");
             Directory.CreateDirectory(Assets);
-            foreach (string name in new[] {"index.html", "design.css", "refinements.css", "ribbon.svg", "WebView2Loader.dll"}) Extract(name);
+            foreach (string name in new[] {"index.html", "app.js", "design.css", "refinements.css", "ribbon.svg", "WebView2Loader.dll"}) Extract(name);
             AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs e) {
                 string name = new AssemblyName(e.Name).Name;
                 if (name != "Microsoft.Web.WebView2.Core" && name != "Microsoft.Web.WebView2.WinForms") return null;
@@ -102,28 +102,14 @@ internal sealed class MainWindow:Form {
                     if(!e.IsSuccess) {Program.Failure(new Exception("Ошибка загрузки интерфейса: "+e.WebErrorStatus));Close();return;}
                     loading.Visible=false;
                     if(Program.Smoke!=null) {
+                        bool reload=false;
                         try {
-                            string result=await web.ExecuteScriptAsync(@"(()=>{
-const check=(ok,msg)=>{if(!ok)throw Error(msg)};
-const click=s=>{let e=document.querySelector(s);check(e,'Missing '+s);e.click()};
-const value=(s,v)=>{document.querySelector(s).value=v};
-check(document.querySelector('#pageTitle').textContent==='Главная','Home');
-click('[data-action=create-task]');value('#taskText','Desktop smoke task');click('#saveDialog');
-check(document.querySelector('#home').textContent.includes('Desktop smoke task'),'Create task');
-click('[data-action=toggle-task]');check(document.querySelector('[data-action=toggle-task]').classList.contains('checked'),'Complete task');
-click('[data-action=new-note]');value('#noteTitle','Desktop smoke note');value('#noteBody','Saved from exe');click('#saveDialog');
-click('[data-view=notes]');click('[data-action=favorite-note]');
-check(document.querySelectorAll('[data-action=favorite-note]').length===2,'Favorite');
-click('[data-view=habits]');check(document.querySelector('#habits').textContent.includes('Статистика'),'Habits');
-click('[data-view=calendar]');check(document.querySelectorAll('.cal-day').length>=28,'Calendar');
-const data=JSON.parse(localStorage.getItem('jdi.data.v1'));check(data.tasks[0].done&&data.notes[0].favorite,'Persistence');
-const css=getComputedStyle(document.querySelector('.sidebar'));check(css.backgroundImage.includes('gradient'),'Design CSS');
-return {ok:true,title:document.title,tasks:data.tasks.length,notes:data.notes.length,origin:location.origin};
-})()");
+                            string result=await web.ExecuteScriptAsync(System.Text.Encoding.UTF8.GetString(Program.Read("smoke.js")));
+                            if (result.Contains("\"reload\":true")) { reload=true; web.CoreWebView2.Reload(); return; }
                             File.WriteAllText(Path.Combine(Program.Smoke,"result.json"),result);
                             if (!result.Contains("\"ok\":true")) throw new Exception("Проверка интерфейса не пройдена: "+result);
                             using(var file=File.Create(Path.Combine(Program.Smoke,"preview.png"))) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,file);
-                        } catch(Exception ex) {Program.Failure(ex);} finally {Close();}
+                        } catch(Exception ex) {Program.Failure(ex);} finally {if(!reload)Close();}
                     }
                 };
                 loading.Visible=false;
