@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $source = Join-Path $PSScriptRoot 'src'
 $assets = Join-Path $source 'assets'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
-$output = Join-Path $PSScriptRoot 'JDI-2.1.exe'
+$output = Join-Path $PSScriptRoot 'JDI-2.2.exe'
 $core = Join-Path $source 'Microsoft.Web.WebView2.Core.dll'
 $winforms = Join-Path $source 'Microsoft.Web.WebView2.WinForms.dll'
 $loader = Join-Path $source 'WebView2Loader.dll'
@@ -26,3 +26,5 @@ $compilerArgs = @(
 & $compiler @compilerArgs
 if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
 Write-Host "Ready: $output"
+
+

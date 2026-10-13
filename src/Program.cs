@@ -10,8 +10,8 @@ using Microsoft.Web.WebView2.WinForms;
 [assembly: AssemblyTitle("JDI")]
 [assembly: AssemblyProduct("JDI — Just Did It")]
 [assembly: AssemblyDescription("Личный планировщик: задачи, привычки, календарь и заметки")]
-[assembly: AssemblyVersion("2.1.0.0")]
-[assembly: AssemblyFileVersion("2.1.0.0")]
+[assembly: AssemblyVersion("2.2.0.0")]
+[assembly: AssemblyFileVersion("2.2.0.0")]
 
 internal static class Program {
     internal static string Root;
@@ -28,7 +28,7 @@ internal static class Program {
         Application.SetCompatibleTextRenderingDefault(false);
         try {
             Directory.CreateDirectory(Root);
-            Assets = Path.Combine(Root, "app-2.1.0");
+            Assets = Path.Combine(Root, "app-2.2.0");
             Directory.CreateDirectory(Assets);
             foreach (string name in new[] {"index.html", "app.js", "design.css", "refinements.css", "ribbon.svg", "WebView2Loader.dll"}) Extract(name);
             AppDomain.CurrentDomain.AssemblyResolve += delegate(object sender, ResolveEventArgs e) {
@@ -108,7 +108,23 @@ internal sealed class MainWindow:Form {
                             if (result.Contains("\"reload\":true")) { reload=true; web.CoreWebView2.Reload(); return; }
                             File.WriteAllText(Path.Combine(Program.Smoke,"result.json"),result);
                             if (!result.Contains("\"ok\":true")) throw new Exception("Проверка интерфейса не пройдена: "+result);
-                            using(var file=File.Create(Path.Combine(Program.Smoke,"preview.png"))) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,file);
+                            foreach(int width in new[]{1440,1280,800}) {
+                                ClientSize=new System.Drawing.Size(width,width==1440?900:720);
+                                foreach(string page in new[]{"home","tasks","habits","calendar","notes"}) {
+                                    await web.ExecuteScriptAsync("document.querySelector('[data-view="+page+"]').click()");
+                                    await System.Threading.Tasks.Task.Delay(200);
+                                    string layout=await web.ExecuteScriptAsync("JSON.stringify({view:'"+page+"',width:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth})");
+                                    File.AppendAllText(Path.Combine(Program.Smoke,"layouts.jsonl"),layout+Environment.NewLine);
+                                    using(var file=File.Create(Path.Combine(Program.Smoke,page+"-"+width+".png"))) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,file);
+                                }
+                            }
+                            ClientSize=new System.Drawing.Size(1440,1000);
+                            foreach(string action in new[]{"create-task","new-habit","log-habit","show-habit","create-plan","new-note","settings"}) {
+                                await web.ExecuteScriptAsync("document.querySelector('[data-view=habits]').click(); document.body.insertAdjacentHTML('beforeend','<button id=qaAction data-action="+action+" data-id=\"'+JSON.parse(localStorage.getItem('jdi.data.v1')).habits[0].id+'\"></button>');document.getElementById('qaAction').click();document.getElementById('qaAction').remove()");
+                                await System.Threading.Tasks.Task.Delay(200);
+                                using(var file=File.Create(Path.Combine(Program.Smoke,action+".png"))) await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png,file);
+                                await web.ExecuteScriptAsync("document.querySelector('#dialog [data-action=close-modal]').click()");
+                            }
                         } catch(Exception ex) {Program.Failure(ex);} finally {if(!reload)Close();}
                     }
                 };
@@ -122,3 +138,4 @@ internal sealed class MainWindow:Form {
     }
     static void Trace(string text){if(Program.Smoke!=null)File.AppendAllText(Path.Combine(Program.Smoke,"trace.log"),DateTime.Now.ToString("O")+" "+text+Environment.NewLine);}
 }
+
